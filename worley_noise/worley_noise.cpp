@@ -9,7 +9,7 @@
 
 // define constants
 #define AMOUNT 1           // AMOUNT of points per SECTION
-#define SECTIONS 40         // SECTIONS x SECTIONS field
+#define SECTIONS 10         // SECTIONS x SECTIONS field
 
 // template
 template <typename T> int sign(T val) {
@@ -18,7 +18,7 @@ template <typename T> int sign(T val) {
 
 // declare functions
 int* create_worley_points(int width, int height);
-int noice_generator(int* nodeArray, int x, int y, int width, int height);
+int noise_generator(int* nodeArray, int x, int y, int width, int height);
 void draw(SDL_Surface* surface, int width, int height);
 void WipeSurface(SDL_Surface *surface);
 void draw_line(SDL_Surface* surface, uint8_t* pixelArray, int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b);
@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
 
 	// initialize SDL as video only
 	SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* window = SDL_CreateWindow("Worley Noice", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+    SDL_Window* window = SDL_CreateWindow("Worley Noise", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
     SDL_Surface* screen = SDL_GetWindowSurface(window);
 
     // set window position on screen
@@ -117,7 +117,7 @@ int* create_worley_points(int width, int height) {
     return nodeArray;
 }
 
-int noice_generator(int* nodeArray, int x, int y, int width, int height) {
+int noise_generator(int* nodeArray, int x, int y, int width, int height) {
     // get the section the pixel is in
     int x_a = x / (width/SECTIONS);
     int y_a = y / (height/SECTIONS);
@@ -171,7 +171,7 @@ int noice_generator(int* nodeArray, int x, int y, int width, int height) {
 
     //std::sqrt(std::pow(std::abs(nodeArray[i*2] - x),2)+std:pow(std::abs(nodeArray[i*2+1] - y),2))
 
-    double result = min_dist / get_dist(0, 0, (width*1.1)/(SECTIONS*AMOUNT), (height*1.1)/(SECTIONS*AMOUNT));
+    double result = min_dist / get_dist(0, 0, (width*1.0)/(SECTIONS*AMOUNT), (height*1.0)/(SECTIONS*AMOUNT));
 
     if (result > 1.0) {
         result = 1.0;
@@ -189,10 +189,10 @@ void draw(SDL_Surface* surface, int width, int height) {
     // generate worley nodes
     int* nodeArray = create_worley_points(width, height);
 
-    // draw noice
+    // draw noise
 	for (int x = 0; x < width; x++) {
 		for (int y = 0; y < height; y++) {
-            value = noice_generator(nodeArray, x, y, width, height);
+            value = noise_generator(nodeArray, x, y, width, height);
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+0] = value;
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+1] = value;
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+2] = value;
