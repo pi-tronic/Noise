@@ -24,6 +24,4 @@ You can optimize the algorithm by splitting the screen into sections and the pla
 Then your algorithm to calculate the distance only needs to check the distances with the points in the own section and the 8 surrounding sections. \
 Otherwise you would need to check every single point...
 
-![Worley Noise](screenshots/worley_noise_01.png =200x200)
-
-<img src="https://github.com/pi-tronic/Noise/blob/1-worley-noise/screenshots/worley_noise_01.png" width="100" height="100">
+<img src="https://github.com/pi-tronic/Noise/blob/1-worley-noise/screenshots/worley_noise_01.png" width="400" height="400">
