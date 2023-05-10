@@ -26,4 +26,4 @@ Otherwise you would need to check every single point...
 
 ![Worley Noise](screenshots/worley_noise_01.png =200x200)
 
-<img src="https://../../screenshots/worley_noise_01.png" width="100" height="100">
+<img src="https://github.com/pi-tronic/Noise/blob/1-worley-noise/screenshots/worley_noise_01.png" width="100" height="100">
