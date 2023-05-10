@@ -9,7 +9,7 @@
 
 // define constants
 #define AMOUNT 1           // AMOUNT of points per SECTION
-#define SECTIONS 40         // SECTIONS x SECTIONS field
+#define SECTIONS 3         // SECTIONS x SECTIONS field
 
 // template
 template <typename T> int sign(T val) {
@@ -19,7 +19,7 @@ template <typename T> int sign(T val) {
 // declare functions
 int* create_worley_points(int width, int height);
 int noice_generator(int* nodeArray, int x, int y, int width, int height);
-void draw(SDL_Surface* surface, int width, int height);
+void draw(SDL_Surface* surface, int* nodeArray, int width, int height, int x, int y);
 void WipeSurface(SDL_Surface *surface);
 void draw_line(SDL_Surface* surface, uint8_t* pixelArray, int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b);
 void draw_point(SDL_Surface* surface, uint8_t* pixelArray, int p_x, int p_y, int p_r, int width, int height, uint8_t r, uint8_t g, uint8_t b);
@@ -30,6 +30,9 @@ int main(int argc, char const *argv[])
 	// variables and constants
 	int width = 1000;
 	int height = 1000;
+
+    // generate worley nodes
+    int* nodeArray = create_worley_points(width, height);
 
 	// initialize SDL as video only
 	SDL_Init(SDL_INIT_VIDEO);
@@ -62,7 +65,7 @@ int main(int argc, char const *argv[])
                 WipeSurface(screen);
 
                 // draw the image
-                draw(screen, width, height);
+                draw(screen, nodeArray, width, height, 80, 500);
 
                 // calculate execution time
                 auto stop = std::chrono::high_resolution_clock::now();
@@ -88,7 +91,7 @@ int main(int argc, char const *argv[])
 }
 
 // pythagorean theorem to calculate the distance between two 2d points
-double get_dist(double x1, double y1, double x2, double y2) {
+int get_dist(int x1, int y1, int x2, int y2) {
     return std::sqrt(std::pow(std::abs(x2 - x1),2)+std::pow(std::abs(y2 - y1),2));
 }
 
@@ -134,8 +137,8 @@ int noice_generator(int* nodeArray, int x, int y, int width, int height) {
             for (int b = 0; b < 3; b++) {
                 if (y_a-1+b >= 0 && y_a-1+b < SECTIONS) {
                     for (int i = 0; i < AMOUNT; i++) {
-                        if (min_dist > get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2], nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1])) {
-                            min_dist = get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2], nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1]);
+                        if (min_dist > get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2], nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2+1])) {
+                            min_dist = get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2], nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2+1]);
 
                             /*if (show) {
                                 std::cout << x_a << " : " << y_a << " --> " << min_dist << std::endl;
@@ -171,34 +174,25 @@ int noice_generator(int* nodeArray, int x, int y, int width, int height) {
 
     //std::sqrt(std::pow(std::abs(nodeArray[i*2] - x),2)+std:pow(std::abs(nodeArray[i*2+1] - y),2))
 
-    double result = min_dist / get_dist(0, 0, (width*1.1)/(SECTIONS*AMOUNT), (height*1.1)/(SECTIONS*AMOUNT));
+    double result = min_dist / (double)get_dist(0, 0, width/(SECTIONS*AMOUNT), height/(SECTIONS*AMOUNT));
 
-    if (result > 1.0) {
-        result = 1.0;
-    }
-
-	return (1.0- (result)) * 255;
+	return (1- (result)) * 255;
 }
 
-void draw(SDL_Surface* surface, int width, int height) {
+void draw(SDL_Surface* surface, int* nodeArray, int width, int height, int x, int y) {
     srand((unsigned) time(NULL));
     SDL_LockSurface(surface);
     uint8_t* pixelArray = (uint8_t*)surface->pixels;
     int value;
 
-    // generate worley nodes
-    int* nodeArray = create_worley_points(width, height);
+    // int x = count / height;
+    // int y = count - x * height;
 
-    // draw noice
-	for (int x = 0; x < width; x++) {
-		for (int y = 0; y < height; y++) {
-            value = noice_generator(nodeArray, x, y, width, height);
-            pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+0] = value;
-            pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+1] = value;
-            pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+2] = value;
-		}
-	}
-/*
+    int x_a = x / (width/SECTIONS);
+    int y_a = y / (height/SECTIONS);
+
+    value = noice_generator(nodeArray, x, y, width, height);
+
     // draw section lines
     for (int i = 1; i < SECTIONS; i++) {
         draw_line(surface, pixelArray, 0, i*(height/SECTIONS), width, i*(height/SECTIONS), 0, 255, 0);
@@ -213,16 +207,25 @@ void draw(SDL_Surface* surface, int width, int height) {
 
         //std::cout << i << " --> " << nodeArray[i] << ":" << nodeArray[i+1] << std::endl;
     }
-*/
 
-    // alternative way to draw worley points, but does the same, dont worry
-    // for (int x = 0; x < SECTIONS; x++) {
-    //     for (int y = 0; y < SECTIONS; y++) {
-    //         for (int i = 0; i < AMOUNT; i++) {
-    //             draw_point(surface, pixelArray, nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2], nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2+1], 5, width, height, 255, 255, 0);
-    //         }
-    //     }
-    // }
+    // draw lines from pixel to surrounding points
+    for (int a = 0; a < 3; a++) {
+        if (x_a-1+a >= 0 && x_a-1+a < SECTIONS) {
+            for (int b = 0; b < 3; b++) {
+                if (y_a-1+b >= 0 && y_a-1+b < SECTIONS) {
+                    for (int i = 0; i < AMOUNT; i++) {
+                        draw_line(surface, pixelArray, x, y, nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2], nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1], 255, 0, 0);
+
+                        // std::cout << SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2 << " : " << SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1 << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    draw_point(surface, pixelArray, 300, 300, 5, width, height, 0, 0, 255);
+    draw_point(surface, pixelArray, 400, 400, 5, width, height, 0, 0, 255);
+    draw_line(surface, pixelArray, 300, 300, 400, 400, 0, 0, 255);
 
     SDL_UnlockSurface(surface);
 }
@@ -249,6 +252,8 @@ void draw_line(SDL_Surface* surface, uint8_t* pixelArray, int x1, int y1, int x2
     int range = x2 - x1;
     
     if (range < y2 - y1) { 
+        // y longer
+
         range = y2 - y1;
 
         // determine increment of the line function
@@ -263,6 +268,8 @@ void draw_line(SDL_Surface* surface, uint8_t* pixelArray, int x1, int y1, int x2
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+2] = r;
         }
     } else {
+        // x longer
+
         // determine increment of the line function
         a = (y2-y1) / (double)(x2-x1);
 
