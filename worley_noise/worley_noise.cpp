@@ -8,8 +8,10 @@
 #include <SDL2/SDL.h>
 
 // define constants
-#define AMOUNT 1           // AMOUNT of points per SECTION
-#define SECTIONS 10         // SECTIONS x SECTIONS field
+#define AMOUNT 1            // AMOUNT of points per SECTION
+#define SECTIONS 25         // SECTIONS x SECTIONS field
+#define WIDTH 100          // width of surface
+#define HEIGHT 100         // height of surface
 
 // template
 template <typename T> int sign(T val) {
@@ -19,23 +21,27 @@ template <typename T> int sign(T val) {
 // declare functions
 double get_dist2(int& x1, int& y1, int& x2, int& y2);
 double get_dist(double x1, double y1, double x2, double y2);
-int* create_worley_points(int width, int height);
-int noise_generator(int* nodeArray, int x, int y, int width, int height);
-void draw(SDL_Surface* surface, int width, int height);
+int* create_worley_points();
+int noise_generator(int* nodeArray, int x, int y);
+void draw(SDL_Surface* surface);
 void WipeSurface(SDL_Surface *surface);
 void draw_line(SDL_Surface* surface, uint8_t* pixelArray, int x1, int y1, int x2, int y2, uint8_t r, uint8_t g, uint8_t b);
-void draw_point(SDL_Surface* surface, uint8_t* pixelArray, int p_x, int p_y, int p_r, int width, int height, uint8_t r, uint8_t g, uint8_t b);
+void draw_point(SDL_Surface* surface, uint8_t* pixelArray, int p_x, int p_y, int p_r, uint8_t r, uint8_t g, uint8_t b);
+
+// allocate space for array
+// this array will be used to create the next frame and then be copied to the screen 
+// uint8_t* pixelArray[WIDTH * HEIGHT * 4] {0};
 
 // main function
 int main(int argc, char const *argv[])
 {
-	// variables and constants
-	int width = 1000;
-	int height = 1000;
+    // variables and constants
+	// int width = 1000;
+	// int height = 1000;
 
 	// initialize SDL as video only
 	SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* window = SDL_CreateWindow("Worley Noise", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+    SDL_Window* window = SDL_CreateWindow("Worley Noise", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
     SDL_Surface* screen = SDL_GetWindowSurface(window);
 
     // set window position on screen
@@ -64,7 +70,7 @@ int main(int argc, char const *argv[])
                 // WipeSurface(screen);
 
                 // draw the image
-                draw(screen, width, height);
+                draw(screen);
 
                 // calculate execution time
                 auto stop = std::chrono::high_resolution_clock::now();
@@ -77,7 +83,7 @@ int main(int argc, char const *argv[])
                 std::cout << "Execution time: " << duration.count() << " ms" << std::endl;
             }
         }
-
+        
         // update the shown surface
         SDL_UpdateWindowSurface(window);
 	}
@@ -100,7 +106,7 @@ double get_dist(double x1, double y1, double x2, double y2) {
 }
 
 // create points within the sections to build the noise around
-int* create_worley_points(int width, int height) {
+int* create_worley_points() {
     // creates an array to store all the 2d point coordinates
     int* nodeArray = new int[SECTIONS*SECTIONS * AMOUNT*2]{ 0 };
 
@@ -108,8 +114,8 @@ int* create_worley_points(int width, int height) {
     for (int x = 0; x < SECTIONS; x++) {
         for (int y = 0; y < SECTIONS; y++) {
             for (int i = 0; i < AMOUNT; i++) {
-                nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2] = rand() % (width/SECTIONS) + x*(width/SECTIONS);
-                nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2+1] = rand() % (height/SECTIONS) + y*(height/SECTIONS);
+                nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2] = rand() % (WIDTH/SECTIONS) + x*(WIDTH/SECTIONS);
+                nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2+1] = rand() % (HEIGHT/SECTIONS) + y*(HEIGHT/SECTIONS);
             }
         }
     }
@@ -117,13 +123,13 @@ int* create_worley_points(int width, int height) {
     return nodeArray;
 }
 
-int noise_generator(int* nodeArray, int x, int y, int width, int height) {
+int noise_generator(int* nodeArray, int x, int y) {
     // get the section the pixel is in
-    int x_a = x / (width/SECTIONS);
-    int y_a = y / (height/SECTIONS);
+    int x_a = x / (WIDTH/SECTIONS);
+    int y_a = y / (HEIGHT/SECTIONS);
 
     // set it absurdly high, so it will always be overwritten
-    int min_dist = width + height;
+    int min_dist = WIDTH + HEIGHT;
 
     bool show = true;
 
@@ -143,7 +149,7 @@ int noise_generator(int* nodeArray, int x, int y, int width, int height) {
         }
     }
 
-    double result = min_dist / get_dist(0, 0, (width*1.0)/(SECTIONS*AMOUNT), (height*1.0)/(SECTIONS*AMOUNT));
+    double result = min_dist / get_dist(0, 0, (WIDTH*1.0)/(SECTIONS*AMOUNT), (HEIGHT*1.0)/(SECTIONS*AMOUNT));
 
     if (result > 1.0) {
         result = 1.0;
@@ -152,40 +158,44 @@ int noise_generator(int* nodeArray, int x, int y, int width, int height) {
 	return (1.0- (result)) * 255;
 }
 
-void draw(SDL_Surface* surface, int width, int height) {
+
+
+void draw(SDL_Surface* surface) {
     srand((unsigned) time(NULL));
     SDL_LockSurface(surface);
     uint8_t* pixelArray = (uint8_t*)surface->pixels;
     int value;
 
     // generate worley nodes
-    int* nodeArray = create_worley_points(width, height);
+    int* nodeArray = create_worley_points();
+
+    std::cout << surface->h * surface->pitch << std::endl;
 
     // draw noise
-	for (int x = 0; x < width; x++) {
-		for (int y = 0; y < height; y++) {
-            value = noise_generator(nodeArray, x, y, width, height);
+	for (int x = 0; x < WIDTH; x++) {
+		for (int y = 0; y < HEIGHT; y++) {
+            value = noise_generator(nodeArray, x, y);
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+0] = value;
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+1] = value;
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+2] = value;
 		}
 	}
-/*
-    // draw section lines
-    for (int i = 1; i < SECTIONS; i++) {
-        draw_line(surface, pixelArray, 0, i*(height/SECTIONS), width, i*(height/SECTIONS), 0, 255, 0);
-    }
-    for (int i = 1; i < SECTIONS; i++) {
-        draw_line(surface, pixelArray, i*(width/SECTIONS), 0, i*(width/SECTIONS), height, 0, 255, 0);
-    }
 
-    // draw worley points
-    for (int i = 0; i < (SECTIONS*SECTIONS * AMOUNT); i++) {
-        draw_point(surface, pixelArray, nodeArray[i*2], nodeArray[i*2+1], 5, width, height, 255, 255, 0);
+    // // draw section lines
+    // for (int i = 1; i < SECTIONS; i++) {
+    //     draw_line(surface, pixelArray, 0, i*(HEIGHT/SECTIONS), WIDTH, i*(HEIGHT/SECTIONS), 0, 255, 0);
+    // }
+    // for (int i = 1; i < SECTIONS; i++) {
+    //     draw_line(surface, pixelArray, i*(WIDTH/SECTIONS), 0, i*(WIDTH/SECTIONS), HEIGHT, 0, 255, 0);
+    // }
 
-        //std::cout << i << " --> " << nodeArray[i] << ":" << nodeArray[i+1] << std::endl;
-    }
-*/
+    // // draw worley points
+    // for (int i = 0; i < (SECTIONS*SECTIONS * AMOUNT); i++) {
+    //     draw_point(surface, pixelArray, nodeArray[i*2], nodeArray[i*2+1], 5, 255, 255, 0);
+
+    //     //std::cout << i << " --> " << nodeArray[i] << ":" << nodeArray[i+1] << std::endl;
+    // }
+
     SDL_UnlockSurface(surface);
 }
 
@@ -235,11 +245,11 @@ void draw_line(SDL_Surface* surface, uint8_t* pixelArray, int x1, int y1, int x2
 }
 
 // custom function to draw bigger points on surfaces
-void draw_point(SDL_Surface* surface, uint8_t* pixelArray, int p_x, int p_y, int p_r, int width, int height, uint8_t r, uint8_t g, uint8_t b) {
+void draw_point(SDL_Surface* surface, uint8_t* pixelArray, int p_x, int p_y, int p_r, uint8_t r, uint8_t g, uint8_t b) {
     for (int x = 0; x < p_r*2-1; x++) {
-        if (p_x-(p_r-1)+x >= 0 && p_x-(p_r-1)+x < width) {
+        if (p_x-(p_r-1)+x >= 0 && p_x-(p_r-1)+x < WIDTH) {
             for (int y = 0; y < p_r*2-1; y++) {
-                if (p_y-(p_r-1)+y >= 0 && p_y-(p_r-1)+y < height) {
+                if (p_y-(p_r-1)+y >= 0 && p_y-(p_r-1)+y < HEIGHT) {
                     if (get_dist(p_x-(p_r-1)+x, p_y-(p_r-1)+y, p_x, p_y) < p_r-1) {
                         pixelArray[(p_y-(p_r-1)+y)*surface->pitch + (p_x-(p_r-1)+x)*surface->format->BytesPerPixel+0] = b;
                         pixelArray[(p_y-(p_r-1)+y)*surface->pitch + (p_x-(p_r-1)+x)*surface->format->BytesPerPixel+1] = g;
