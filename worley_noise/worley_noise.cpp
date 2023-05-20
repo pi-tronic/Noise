@@ -17,6 +17,8 @@ template <typename T> int sign(T val) {
 }
 
 // declare functions
+double get_dist2(int& x1, int& y1, int& x2, int& y2);
+double get_dist(double x1, double y1, double x2, double y2);
 int* create_worley_points(int width, int height);
 int noise_generator(int* nodeArray, int x, int y, int width, int height);
 void draw(SDL_Surface* surface, int width, int height);
@@ -59,7 +61,7 @@ int main(int argc, char const *argv[])
                 auto start = std::chrono::high_resolution_clock::now();
 
                 // delete everything on screen
-                WipeSurface(screen);
+                // WipeSurface(screen);
 
                 // draw the image
                 draw(screen, width, height);
@@ -87,6 +89,11 @@ int main(int argc, char const *argv[])
 	return EXIT_SUCCESS;
 }
 
+// test efficiency improvement of not actually giving values, but rather adresses of values
+double get_dist2(int& x1, int& y1, int& x2, int& y2) {
+    return std::sqrt(std::pow(std::abs(x2 - x1),2)+std::pow(std::abs(y2 - y1),2));
+}
+
 // pythagorean theorem to calculate the distance between two 2d points
 double get_dist(double x1, double y1, double x2, double y2) {
     return std::sqrt(std::pow(std::abs(x2 - x1),2)+std::pow(std::abs(y2 - y1),2));
@@ -97,13 +104,6 @@ int* create_worley_points(int width, int height) {
     // creates an array to store all the 2d point coordinates
     int* nodeArray = new int[SECTIONS*SECTIONS * AMOUNT*2]{ 0 };
 
-    // THEORETICALLY puts AMOUNT points in each section
-    // as of right now:
-    /*     in the top left quadrant are double the wanted amount per section
-           bottom left quadrant is all fine
-           top right quadrant is fine, except the top right section, where always one point is missing
-           bottom left quadrant is completely empty, except the top right section, where there is allways just one point
-    */
     // creates x and y coordinates of points
     for (int x = 0; x < SECTIONS; x++) {
         for (int y = 0; y < SECTIONS; y++) {
@@ -136,40 +136,12 @@ int noise_generator(int* nodeArray, int x, int y, int width, int height) {
                     for (int i = 0; i < AMOUNT; i++) {
                         if (min_dist > get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2], nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1])) {
                             min_dist = get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2], nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1]);
-
-                            /*if (show) {
-                                std::cout << x_a << " : " << y_a << " --> " << min_dist << std::endl;
-                                show = !show;
-                            }*/
                         }
                     }
                 }
             }
         }
     }
-
-    // old and flawed generation algorithm
-    // for (int a = 0; a < 3; a++) {
-    //     if (x_a-1+a >= 0 && x_a-1+a <= width) {
-    //         for (int b = 0; b < 3; b++) {
-    //             if (y_a-1+b >= 0 && y_a-1+b <= height) {
-    //                 for (int i = 0; i < AMOUNT; i++) {
-    //                     if (min_dist > get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2], nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2+1])) {
-    //                         min_dist = get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2], nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2+1]);
-
-
-    //                         /*if (show) {
-    //                             std::cout << x_a << " : " << y_a << " --> " << min_dist << std::endl;
-    //                             show = !show;
-    //                         }*/
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    //std::sqrt(std::pow(std::abs(nodeArray[i*2] - x),2)+std:pow(std::abs(nodeArray[i*2+1] - y),2))
 
     double result = min_dist / get_dist(0, 0, (width*1.0)/(SECTIONS*AMOUNT), (height*1.0)/(SECTIONS*AMOUNT));
 
@@ -214,29 +186,14 @@ void draw(SDL_Surface* surface, int width, int height) {
         //std::cout << i << " --> " << nodeArray[i] << ":" << nodeArray[i+1] << std::endl;
     }
 */
-
-    // alternative way to draw worley points, but does the same, dont worry
-    // for (int x = 0; x < SECTIONS; x++) {
-    //     for (int y = 0; y < SECTIONS; y++) {
-    //         for (int i = 0; i < AMOUNT; i++) {
-    //             draw_point(surface, pixelArray, nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2], nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2+1], 5, width, height, 255, 255, 0);
-    //         }
-    //     }
-    // }
-
     SDL_UnlockSurface(surface);
 }
 
 // copies black on all pixels
 void WipeSurface(SDL_Surface *surface)
 {
-    /* This is fast for surfaces that don't require locking. */
-    /* Once locked, surface->pixels is safe to access. */
     SDL_LockSurface(surface);
 
-    /* This assumes that color value zero is black. Use
-       SDL_MapRGBA() for more robust surface color mapping! */
-    /* height times pitch is the size of the surface's whole buffer. */
     SDL_memset(surface->pixels, 0, surface->h * surface->pitch);
 
     SDL_UnlockSurface(surface);
@@ -275,8 +232,6 @@ void draw_line(SDL_Surface* surface, uint8_t* pixelArray, int x1, int y1, int x2
             pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+2] = r;
         }
     }
-
-    //std::cout << "line drawn" << std::endl;
 }
 
 // custom function to draw bigger points on surfaces
