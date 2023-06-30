@@ -97,13 +97,7 @@ int* create_worley_points(int width, int height) {
     // creates an array to store all the 2d point coordinates
     int* nodeArray = new int[SECTIONS*SECTIONS * AMOUNT*2]{ 0 };
 
-    // THEORETICALLY puts AMOUNT points in each section
-    // as of right now:
-    /*     in the top left quadrant are double the wanted amount per section
-           bottom left quadrant is all fine
-           top right quadrant is fine, except the top right section, where always one point is missing
-           bottom left quadrant is completely empty, except the top right section, where there is allways just one point
-    */
+    // puts AMOUNT points in each section
     // creates x and y coordinates of points
     for (int x = 0; x < SECTIONS; x++) {
         for (int y = 0; y < SECTIONS; y++) {
@@ -125,8 +119,6 @@ int noise_generator(int* nodeArray, int x, int y, int width, int height) {
     // set it absurdly high, so it will always be overwritten
     int min_dist = width + height;
 
-    bool show = true;
-
     // check the 8 neighbouring and own sections nodes for min distance
     // leaves out sections that are not existing (world border)
     for (int a = 0; a < 3; a++) {
@@ -136,38 +128,12 @@ int noise_generator(int* nodeArray, int x, int y, int width, int height) {
                     for (int i = 0; i < AMOUNT; i++) {
                         if (min_dist > get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2], nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1])) {
                             min_dist = get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2], nodeArray[SECTIONS*(x_a-1+a)*AMOUNT*2+(y_a-1+b)*AMOUNT*2+i*2+1]);
-
-                            /*if (show) {
-                                std::cout << x_a << " : " << y_a << " --> " << min_dist << std::endl;
-                                show = !show;
-                            }*/
                         }
                     }
                 }
             }
         }
     }
-
-    // old and flawed generation algorithm
-    // for (int a = 0; a < 3; a++) {
-    //     if (x_a-1+a >= 0 && x_a-1+a <= width) {
-    //         for (int b = 0; b < 3; b++) {
-    //             if (y_a-1+b >= 0 && y_a-1+b <= height) {
-    //                 for (int i = 0; i < AMOUNT; i++) {
-    //                     if (min_dist > get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2], nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2+1])) {
-    //                         min_dist = get_dist(x, y, nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2], nodeArray[SECTIONS*(x_a-1+a)+(y_a-1+b)+i*2+1]);
-
-
-    //                         /*if (show) {
-    //                             std::cout << x_a << " : " << y_a << " --> " << min_dist << std::endl;
-    //                             show = !show;
-    //                         }*/
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
 
     //std::sqrt(std::pow(std::abs(nodeArray[i*2] - x),2)+std:pow(std::abs(nodeArray[i*2+1] - y),2))
 
@@ -181,24 +147,24 @@ int noise_generator(int* nodeArray, int x, int y, int width, int height) {
 }
 
 void draw(SDL_Surface* surface, int width, int height) {
-    srand((unsigned) time(NULL));
+    // srand((unsigned) time(NULL));
     SDL_LockSurface(surface);
     uint8_t* pixelArray = (uint8_t*)surface->pixels;
-    int value;
+    // int value;
 
     // generate worley nodes
-    int* nodeArray = create_worley_points(width, height);
+    // int* nodeArray = create_worley_points(width, height);
 
     // draw noise
-	for (int x = 0; x < width; x++) {
-		for (int y = 0; y < height; y++) {
-            value = noise_generator(nodeArray, x, y, width, height);
-            pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+0] = value;
-            pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+1] = value;
-            pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+2] = value;
-		}
-	}
-/*
+	// for (int x = 0; x < width; x++) {
+	// 	for (int y = 0; y < height; y++) {
+    //         value = noise_generator(nodeArray, x, y, width, height);
+    //         pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+0] = value;
+    //         pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+1] = value;
+    //         pixelArray[y*surface->pitch + x*surface->format->BytesPerPixel+2] = value;
+	// 	}
+	// }
+
     // draw section lines
     for (int i = 1; i < SECTIONS; i++) {
         draw_line(surface, pixelArray, 0, i*(height/SECTIONS), width, i*(height/SECTIONS), 0, 255, 0);
@@ -207,22 +173,19 @@ void draw(SDL_Surface* surface, int width, int height) {
         draw_line(surface, pixelArray, i*(width/SECTIONS), 0, i*(width/SECTIONS), height, 0, 255, 0);
     }
 
+    // draw red line(s)
+    draw_line(surface, pixelArray, 300, 300, 900, 400, 255, 0, 0);
+    draw_line(surface, pixelArray, 300, 300, 400, 900, 255, 0, 0);
+    draw_line(surface, pixelArray, 0, 0, 1000, 1000, 255, 0, 0);
+    draw_line(surface, pixelArray, 500, 100, 400, 10, 255, 0, 0);
+
     // draw worley points
-    for (int i = 0; i < (SECTIONS*SECTIONS * AMOUNT); i++) {
-        draw_point(surface, pixelArray, nodeArray[i*2], nodeArray[i*2+1], 5, width, height, 255, 255, 0);
+    // for (int i = 0; i < (SECTIONS*SECTIONS * AMOUNT); i++) {
+    //     draw_point(surface, pixelArray, nodeArray[i*2], nodeArray[i*2+1], 5, width, height, 255, 255, 0);
 
-        //std::cout << i << " --> " << nodeArray[i] << ":" << nodeArray[i+1] << std::endl;
-    }
-*/
-
-    // alternative way to draw worley points, but does the same, dont worry
-    // for (int x = 0; x < SECTIONS; x++) {
-    //     for (int y = 0; y < SECTIONS; y++) {
-    //         for (int i = 0; i < AMOUNT; i++) {
-    //             draw_point(surface, pixelArray, nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2], nodeArray[x*SECTIONS*AMOUNT*2+y*AMOUNT*2+i*2+1], 5, width, height, 255, 255, 0);
-    //         }
-    //     }
+    //     //std::cout << i << " --> " << nodeArray[i] << ":" << nodeArray[i+1] << std::endl;
     // }
+
 
     SDL_UnlockSurface(surface);
 }
